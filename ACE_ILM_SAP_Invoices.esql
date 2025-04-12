@@ -1,0 +1,148 @@
+
+
+CREATE COMPUTE MODULE ACE_ILM_SAP_Invoices_BuildIDOCandSentToSAP
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		--CALL CopyEntireMessage();
+		
+		DECLARE rInvoicesMessage REFERENCE TO InputRoot.XMLNSC.*:INVOICE;
+		DECLARE rHeaderData REFERENCE TO rInvoicesMessage.*:Header;
+		DECLARE rLineData REFERENCE TO rInvoicesMessage.*:Line;
+		DECLARE bIsVendor BOOLEAN FALSE;
+		
+		/*
+		--Check if customer or vendor
+		DECLARE rVendorOrCust REFERENCE TO rLineData.Vendor_Number;
+		IF LASTMOVE(rVendorOrCust) THEN
+			SET bIsVendor = TRUE;
+		END IF;
+		*/
+		--Get header attributes
+		DECLARE cCompanyCode CHAR COALESCE(rHeaderData.*:Company_Code,'');
+		DECLARE cDocumentDate CHAR COALESCE(rHeaderData.*:Document_Date ,'');
+		DECLARE cPostingDate CHAR COALESCE(rHeaderData.*:Posting_Date,'');
+		DECLARE cPostingYear CHAR COALESCE(rHeaderData.*:Posting_Year,'');
+		DECLARE cReference CHAR COALESCE(rHeaderData.*:Reference ,'');
+		DECLARE cCurrency CHAR COALESCE(rHeaderData.*:Currency,'');
+		DECLARE cDocumentType CHAR COALESCE(rHeaderData.*:Document_type ,'');
+		DECLARE cBusinessTransaction CHAR COALESCE(rHeaderData.*:Business_Transaction,'');
+		DECLARE cTransactionCode CHAR COALESCE(rHeaderData.*:Transaction_Code,'');
+		DECLARE cExchangeRate CHAR COALESCE(rHeaderData.*:Exchange_Rate,'');
+		
+    	
+		--*********************
+		--Build IDOC ZMOTORDATA01
+		--*********************
+		CREATE FIELD OutputRoot.DataObject;
+		DECLARE rDataObject REFERENCE TO OutputRoot.DataObject;	
+		DECLARE rSapFidccp02E2fikpf006,rSapFidccp02E2fiseg005,rSapFidccp02E2fise2003,rSapFidccp02E2finbu006 REFERENCE TO rDataObject;
+		DECLARE rSapFidccp02E2fiseg005Summary,rSapFidccp02E2finbu006Summary REFERENCE TO rDataObject;
+		
+		--Create SAP iDOC header segment -- SapFidccp02fikpf006
+	    CREATE LASTCHILD OF rDataObject.*:SapFidccp02.SapFidccp02IDocBO.SapFidccp02DataRecord AS rSapFidccp02E2fikpf006 NAME 'SapFidccp02E2fikpf006';
+																															  
+		SET rSapFidccp02E2fikpf006.BUKRS = cCompanyCode;
+		SET rSapFidccp02E2fikpf006.GJAHR = cPostingYear;
+		/*
+		IF bIsVendor THEN
+			SET rSapFidccp02E2fikpf006.BLART = 'LM376'; --Vendor
+		ELSE
+			SET rSapFidccp02E2fikpf006.BLART = 'LM125'; --Customer
+		END IF;
+		*/
+		SET rSapFidccp02E2fikpf006.BLART = cDocumentType;
+		SET rSapFidccp02E2fikpf006.BLDAT = cDocumentDate;
+		SET rSapFidccp02E2fikpf006.BUDAT = cPostingDate;
+		SET rSapFidccp02E2fikpf006.WWERT = cPostingDate;
+		SET rSapFidccp02E2fikpf006.TCODE = cTransactionCode;
+		SET rSapFidccp02E2fikpf006.XBLNR = cReference;
+		SET rSapFidccp02E2fikpf006.WAERS = cCurrency;
+		SET rSapFidccp02E2fikpf006.KURSF = cExchangeRate;
+		SET rSapFidccp02E2fikpf006.GLVOR = cBusinessTransaction;		
+		
+		--Create lines = fiseg005 + subsegments
+		WHILE LASTMOVE(rLineData) DO
+			IF rLineData.TYPE='Invoice line' THEN
+				--Create rSapFidccp02E2fiseg005 segment
+				CREATE LASTCHILD OF rSapFidccp02E2fikpf006 AS rSapFidccp02E2fiseg005 NAME 'SapFidccp02E2fiseg005';
+
+				SET rSapFidccp02E2fiseg005.BUZEI = COALESCE(rLineData.Line_No, '');
+				SET rSapFidccp02E2fiseg005.BSCHL = COALESCE(rLineData.Posting_Key, '');		
+				SET rSapFidccp02E2fiseg005.KOART = COALESCE(rLineData.Account_Type, '');
+				SET rSapFidccp02E2fiseg005.SHKZG = COALESCE(rLineData.DC_Indicator, '');
+				SET rSapFidccp02E2fiseg005.MWSKZ = COALESCE(rLineData.Tax_Code, '');
+				SET rSapFidccp02E2fiseg005.DMBTR = COALESCE(rLineData.Amount_In_Local_Currency, '0');
+				SET rSapFidccp02E2fiseg005.WRBTR = COALESCE(rLineData.Amount_In_Document_Currency, '0');	
+				SET rSapFidccp02E2fiseg005.ZUONR = COALESCE(rLineData.Assignment, '');
+				SET rSapFidccp02E2fiseg005.SGTXT = COALESCE(rLineData.Text, '');
+				SET rSapFidccp02E2fiseg005.VORGN = COALESCE(rLineData.Transaction_Type, '');
+				SET rSapFidccp02E2fiseg005.KOSTL = COALESCE(rLineData.Cost_Center, '');
+				SET rSapFidccp02E2fiseg005.HKONT = COALESCE(rLineData.GL_Account, '');			
+				SET rSapFidccp02E2fiseg005.PRCTR = COALESCE(rLineData.Profit_Center, '');
+					--Create SapFidccp02E2fise2003 segment
+					CREATE LASTCHILD OF rSapFidccp02E2fiseg005 AS rSapFidccp02E2fise2003 NAME 'SapFidccp02E2fise2003';
+					SET rSapFidccp02E2fise2003.SEGMENT = COALESCE(rLineData.Segment, '');
+					--Create SapFidccp02finbu006 segment
+					CREATE LASTCHILD OF rSapFidccp02E2fiseg005 AS rSapFidccp02E2finbu006 NAME 'SapFidccp02E2finbu006';
+					IF rLineData.Customer_Number > '' THEN
+						SET rSapFidccp02E2finbu006.KUNNR = COALESCE(rLineData.Customer_Number, '');
+					END IF;
+					--SET rSapFidccp02E2finbu006.ZFBDT = COALESCE(rLineData.Baseline_Date, '');
+					
+					SET rSapFidccp02E2finbu006.ZTERM = COALESCE(rLineData.Payment_Terms, '');
+		
+					IF rLineData.Vendor_Number > '' THEN
+						SET rSapFidccp02E2finbu006.LIFNR = COALESCE(rLineData.Vendor_Number, '');
+					END IF;
+			END IF;
+			MOVE rLineData NEXTSIBLING REPEAT TYPE NAME;
+    	END WHILE;	
+		
+		--Create summary segment - fiseg005
+		--SET Environment.Variables.SummaryRecord[] = (SELECT A FROM rInvoicesMessage.*:Line[] AS A WHERE A.*:TYPE='Summary record');
+		--DECLARE rSummaryRecord REFERENCE TO Environment.Variables.SummaryRecord;
+		DECLARE rSummaryRecord REFERENCE TO rInvoicesMessage.*:Line[<];
+		
+		CREATE LASTCHILD OF rSapFidccp02E2fikpf006 AS rSapFidccp02E2fiseg005Summary NAME 'SapFidccp02E2fiseg005';	
+		SET rSapFidccp02E2fiseg005Summary.BUZEI = COALESCE(rSummaryRecord.Line_No, '');
+		SET rSapFidccp02E2fiseg005Summary.BSCHL = COALESCE(rSummaryRecord.Posting_Key, '');
+		SET rSapFidccp02E2fiseg005Summary.KOART = COALESCE(rSummaryRecord.Account_Type, '');
+		SET rSapFidccp02E2fiseg005Summary.SHKZG = COALESCE(rSummaryRecord.DC_Indicator, '');
+		SET rSapFidccp02E2fiseg005Summary.MWSKZ = COALESCE(rSummaryRecord.Tax_Code, '');
+		SET rSapFidccp02E2fiseg005Summary.DMBTR = COALESCE(rSummaryRecord.Amount_In_Local_Currency, '0');
+		SET rSapFidccp02E2fiseg005Summary.WRBTR = COALESCE(rSummaryRecord.Amount_In_Document_Currency, '0');	
+		SET rSapFidccp02E2fiseg005Summary.ZUONR = COALESCE(rSummaryRecord.Assignment, '');
+		SET rSapFidccp02E2fiseg005Summary.SGTXT = COALESCE(rSummaryRecord.Text, '');
+		SET rSapFidccp02E2fiseg005Summary.VORGN = COALESCE(rSummaryRecord.Transaction_Type, '');
+		SET rSapFidccp02E2fiseg005Summary.KOSTL = COALESCE(rSummaryRecord.Cost_Center, '');
+		SET rSapFidccp02E2fiseg005Summary.HKONT = COALESCE(rSummaryRecord.GL_Account, '');			
+		SET rSapFidccp02E2fiseg005Summary.PRCTR = COALESCE(rSummaryRecord.Profit_Center, '');
+				
+			CREATE LASTCHILD OF rSapFidccp02E2fiseg005Summary AS rSapFidccp02E2finbu006Summary NAME 'SapFidccp02E2finbu006';
+			IF rSummaryRecord.Customer_Number > '' THEN
+				SET rSapFidccp02E2finbu006Summary.KUNNR = COALESCE(rSummaryRecord.Customer_Number, '');
+			END IF;
+			SET rSapFidccp02E2finbu006Summary.ZFBDT = COALESCE(rSummaryRecord.Baseline_Date, '');	
+			SET rSapFidccp02E2finbu006Summary.ZTERM = COALESCE(rSummaryRecord.Payment_Terms, '');
+			IF rSummaryRecord.Vendor_Number > '' THEN
+				SET rSapFidccp02E2finbu006Summary.LIFNR = COALESCE(rSummaryRecord.Vendor_Number, '');
+			END IF;
+							
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;
