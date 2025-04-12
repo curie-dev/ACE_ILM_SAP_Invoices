@@ -7,7 +7,7 @@
     <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/ACE_ILM_SAP_Invoices/icons/full/obj16/ACE_ILM_SAP_Invoices.gif"/>
     <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/ACE_ILM_SAP_Invoices/icons/full/obj30/ACE_ILM_SAP_Invoices.gif"/>
     <composition>
-      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="198,94" queueName="KC039.ILM.SAP.INVOICES.FAILURE">
+      <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="198,94" queueName="ACE.ILM.SAP.INVOICES.FAILURE">
         <translation xmi:type="utility:ConstantString" string="FAILURE"/>
       </nodes>
       <nodes xmi:type="ComIbmMQOutput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="320,206" queueName="ACE.MWH.ILM.SAP.INVOICES">
@@ -25,10 +25,10 @@
       <nodes xmi:type="ComIbmSAPRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="711,244" adapterComponent="Adapters/SAP/FIDCCP02.outadapter" secondaryAdapterMode="all" defaultMethod="executeSapFidccp02">
         <translation xmi:type="utility:ConstantString" string="SAP Request"/>
       </nodes>
-      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="116,221" destination="file" filePath="/home/mbroker/KC039_ILM_SAP_Invoices.log" pattern="---------------------------------------------------------------&#xD;&#xA;AFTER INPUT NODE:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${Root}">
+      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_12" location="116,221" destination="file" filePath="/home/mbroker/ACE_ILM_SAP_Invoices.log" pattern="---------------------------------------------------------------&#xD;&#xA;AFTER INPUT NODE:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${Root}">
         <translation xmi:type="utility:ConstantString" string="Trace"/>
       </nodes>
-      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="562,143" destination="file" filePath="/home/mbroker/KC039_ILM_SAP_Invoices.log" pattern="---------------------------------------------------------------&#xD;&#xA;BEFORE SAP ADAPTER:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${Root}">
+      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_13" location="562,143" destination="file" filePath="/home/mbroker/ACE_ILM_SAP_Invoices.log" pattern="---------------------------------------------------------------&#xD;&#xA;BEFORE SAP ADAPTER:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${Root}">
         <translation xmi:type="utility:ConstantString" string="Trace1"/>
       </nodes>
       <nodes xmi:type="ComIbmMQInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_14" location="44,198" queueName="ACE.ILM.SAP.INVOICES.IN" messageDomainProperty="XMLNSC">
@@ -37,7 +37,7 @@
       <nodes xmi:type="ComIbmResetContentDescriptor.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_15" location="179,173" messageDomain="XMLNSC" resetMessageDomain="true">
         <translation xmi:type="utility:ConstantString" string="RCD"/>
       </nodes>
-      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_16" location="255,161" destination="file" filePath="/home/mbroker/KC039_ILM_SAP_Invoices.log" pattern="AFTER INPUT NODE:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${CAST(ASBITSTREAM(Root.XMLNSC) AS CHARACTER CCSID Root.Properties.CodedCharSetId)}&#xD;&#xA;${Root}">
+      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_16" location="255,161" destination="file" filePath="/home/mbroker/ACE_ILM_SAP_Invoices.log" pattern="AFTER INPUT NODE:&#xD;&#xA;Time:  ${CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMdd-HHmmss')}&#xD;&#xA;${CAST(ASBITSTREAM(Root.XMLNSC) AS CHARACTER CCSID Root.Properties.CodedCharSetId)}&#xD;&#xA;${Root}">
         <translation xmi:type="utility:ConstantString" string="Trace2"/>
       </nodes>
       <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.first" targetTerminalName="InTerminal.in"/>
